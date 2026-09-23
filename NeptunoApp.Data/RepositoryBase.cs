@@ -8,19 +8,26 @@ namespace NeptunoApp.Data;
 /// derivadas solo declaran el nombre del procedimiento, sus parametros y como
 /// mapear el resultado.
 ///
-/// Criterio de los dos modos de ADO .NET:
+/// Las dos formas de trabajo de ADO .NET estan disponibles y cada repositorio
+/// elige, por operacion, la que corresponde:
 ///
-/// - LECTURAS (listados, busquedas, consultas por id y reportes): modo
-///   DESCONECTADO. SqlDataAdapter llena un DataSet, abre y cierra la conexion
-///   el mismo, y la aplicacion sigue trabajando sobre la copia en memoria. Las
-///   pantallas muestran datos que no necesitan conexion viva.
+/// - Modo DESCONECTADO (<see cref="ListarDesconectadoAsync"/>): SqlDataAdapter
+///   llena un DataSet, abre y cierra la conexion el mismo, y la aplicacion
+///   trabaja sobre la copia en memoria. Se usa para datos de consulta que el
+///   usuario solo mira y recorre: listados de mantenimiento, combos, la busqueda
+///   de proveedores y el reporte por fechas.
 ///
-/// - ESCRITURAS (alta, actualizacion y baja logica): modo CONECTADO con
-///   ExecuteNonQuery sobre procedimientos almacenados. Se mantiene asi porque
-///   las reglas de negocio y la validacion viven en el procedimiento, que
-///   informa los errores con THROW; un DataAdapter con comandos generados
-///   perderia esas reglas y ademas resolveria los conflictos de concurrencia
-///   en el cliente en vez de en la base de datos.
+/// - Modo CONECTADO de lectura (<see cref="ListarConectadoAsync"/> y
+///   <see cref="ObtenerConectadoAsync"/>): SqlDataReader sobre la conexion
+///   abierta, recorriendo las filas a medida que llegan. Se usa donde el dato
+///   tiene que estar al dia en el momento de usarlo: los pedidos y su detalle,
+///   que cambian con cada linea que se agrega, y la relectura por id justo antes
+///   de editar un registro.
+///
+/// - ESCRITURAS (alta, actualizacion y baja logica): siempre modo CONECTADO con
+///   ExecuteNonQuery sobre procedimientos almacenados, porque las reglas de
+///   negocio y la validacion viven en el procedimiento, que informa los errores
+///   con THROW; un DataAdapter con comandos generados perderia esas reglas.
 /// </summary>
 public abstract class RepositoryBase
 {
@@ -36,31 +43,60 @@ public abstract class RepositoryBase
 
     /// <summary>
     /// Lectura desconectada: llena un DataSet con SqlDataAdapter y devuelve la
-    /// lista ya mapeada. Al volver de este metodo la conexion esta cerrada.
+    /// lista ya mapeada. Al volver de <see cref="LlenarAsync"/> la conexion ya
+    /// esta cerrada; el mapeo recorre la tabla en memoria con un DataTableReader.
     /// </summary>
-    protected async Task<List<T>> ListarAsync<T>(
+    protected async Task<List<T>> ListarDesconectadoAsync<T>(
         string procedimiento,
-        Func<DataRow, T> mapear,
+        Func<IDataRecord, T> mapear,
         Action<SqlParameterCollection>? parametros = null)
     {
         var tabla = await LlenarAsync(procedimiento, parametros);
 
         var resultado = new List<T>(tabla.Rows.Count);
-        foreach (DataRow fila in tabla.Rows)
+        using var filas = tabla.CreateDataReader();
+        while (filas.Read())
         {
-            resultado.Add(mapear(fila));
+            resultado.Add(mapear(filas));
         }
         return resultado;
     }
 
-    /// <summary>Igual que <see cref="ListarAsync"/> pero para una sola fila.</summary>
-    protected async Task<T?> ObtenerAsync<T>(
+    /// <summary>
+    /// Lectura conectada: abre la conexion, ejecuta el procedimiento con
+    /// ExecuteReader y mapea cada fila mientras el SqlDataReader esta abierto.
+    /// </summary>
+    protected async Task<List<T>> ListarConectadoAsync<T>(
         string procedimiento,
-        Func<DataRow, T> mapear,
+        Func<IDataRecord, T> mapear,
+        Action<SqlParameterCollection>? parametros = null)
+    {
+        await using var conexion = new SqlConnection(_cadenaConexion);
+        await using var comando = CrearComando(conexion, procedimiento, parametros);
+
+        await conexion.OpenAsync();
+        await using var lector = await comando.ExecuteReaderAsync();
+
+        var resultado = new List<T>();
+        while (await lector.ReadAsync())
+        {
+            resultado.Add(mapear(lector));
+        }
+        return resultado;
+    }
+
+    /// <summary>Igual que <see cref="ListarConectadoAsync"/> pero para una sola fila.</summary>
+    protected async Task<T?> ObtenerConectadoAsync<T>(
+        string procedimiento,
+        Func<IDataRecord, T> mapear,
         Action<SqlParameterCollection> parametros) where T : class
     {
-        var tabla = await LlenarAsync(procedimiento, parametros);
-        return tabla.Rows.Count == 0 ? null : mapear(tabla.Rows[0]);
+        await using var conexion = new SqlConnection(_cadenaConexion);
+        await using var comando = CrearComando(conexion, procedimiento, parametros);
+
+        await conexion.OpenAsync();
+        await using var lector = await comando.ExecuteReaderAsync(CommandBehavior.SingleRow);
+        return await lector.ReadAsync() ? mapear(lector) : null;
     }
 
     /// <summary>

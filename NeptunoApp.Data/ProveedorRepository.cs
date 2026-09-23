@@ -11,17 +11,17 @@ public class ProveedorRepository : RepositoryBase, IProveedorRepository
     }
 
     public Task<List<Proveedor>> ListarAsync()
-        => ListarAsync("dbo.usp_Proveedor_Listar", Mapear);
+        => ListarDesconectadoAsync("dbo.usp_Proveedor_Listar", Mapear);
 
     public Task<List<Proveedor>> BuscarAsync(string? nombreContacto, string? ciudad)
-        => ListarAsync("dbo.usp_Proveedor_Buscar", Mapear, p =>
+        => ListarDesconectadoAsync("dbo.usp_Proveedor_Buscar", Mapear, p =>
         {
             p.Add("@NombreContacto", SqlDbType.NVarChar, 40).Value = Valor(nombreContacto);
             p.Add("@Ciudad", SqlDbType.NVarChar, 30).Value = Valor(ciudad);
         });
 
     public Task<Proveedor?> ObtenerPorIdAsync(int proveedorId)
-        => ObtenerAsync("dbo.usp_Proveedor_ObtenerPorId", Mapear, p =>
+        => ObtenerConectadoAsync("dbo.usp_Proveedor_ObtenerPorId", Mapear, p =>
             p.Add("@ProveedorID", SqlDbType.Int).Value = proveedorId);
 
     public Task<int> CrearAsync(Proveedor proveedor)
@@ -52,18 +52,18 @@ public class ProveedorRepository : RepositoryBase, IProveedorRepository
         p.Add("@Fax", SqlDbType.NVarChar, 24).Value = Valor(proveedor.Fax);
     }
 
-    private static Proveedor Mapear(DataRow fila) => new()
+    private static Proveedor Mapear(IDataRecord registro) => new()
     {
-        ProveedorID = fila.Entero("ProveedorID"),
-        CompaniaNombre = fila.Texto("CompaniaNombre"),
-        NombreContacto = fila.TextoNulo("NombreContacto"),
-        CargoContacto = fila.TextoNulo("CargoContacto"),
-        Direccion = fila.TextoNulo("Direccion"),
-        Ciudad = fila.TextoNulo("Ciudad"),
-        CodigoPostal = fila.TextoNulo("CodigoPostal"),
-        Pais = fila.TextoNulo("Pais"),
-        Telefono = fila.TextoNulo("Telefono"),
-        Fax = fila.TextoNulo("Fax"),
-        Activo = fila.Booleano("Activo")
+        ProveedorID = registro.Entero("ProveedorID"),
+        CompaniaNombre = registro.Texto("CompaniaNombre"),
+        NombreContacto = registro.TextoNulo("NombreContacto"),
+        CargoContacto = registro.TextoNulo("CargoContacto"),
+        Direccion = registro.TextoNulo("Direccion"),
+        Ciudad = registro.TextoNulo("Ciudad"),
+        CodigoPostal = registro.TextoNulo("CodigoPostal"),
+        Pais = registro.TextoNulo("Pais"),
+        Telefono = registro.TextoNulo("Telefono"),
+        Fax = registro.TextoNulo("Fax"),
+        Activo = registro.Booleano("Activo")
     };
 }

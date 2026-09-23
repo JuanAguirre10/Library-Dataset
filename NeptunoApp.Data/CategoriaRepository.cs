@@ -10,10 +10,10 @@ public class CategoriaRepository : RepositoryBase, ICategoriaRepository
     }
 
     public Task<List<Categoria>> ListarAsync()
-        => ListarAsync("dbo.usp_Categoria_Listar", Mapear);
+        => ListarDesconectadoAsync("dbo.usp_Categoria_Listar", Mapear);
 
     public Task<Categoria?> ObtenerPorIdAsync(int categoriaId)
-        => ObtenerAsync("dbo.usp_Categoria_ObtenerPorId", Mapear, p =>
+        => ObtenerConectadoAsync("dbo.usp_Categoria_ObtenerPorId", Mapear, p =>
             p.Add("@CategoriaID", SqlDbType.Int).Value = categoriaId);
 
     public Task<int> CrearAsync(Categoria categoria)
@@ -35,11 +35,11 @@ public class CategoriaRepository : RepositoryBase, ICategoriaRepository
         => EjecutarAsync("dbo.usp_Categoria_Eliminar", p =>
             p.Add("@CategoriaID", SqlDbType.Int).Value = categoriaId);
 
-    private static Categoria Mapear(DataRow fila) => new()
+    private static Categoria Mapear(IDataRecord registro) => new()
     {
-        CategoriaID = fila.Entero("CategoriaID"),
-        NombreCategoria = fila.Texto("NombreCategoria"),
-        Descripcion = fila.TextoNulo("Descripcion"),
-        Activo = fila.Booleano("Activo")
+        CategoriaID = registro.Entero("CategoriaID"),
+        NombreCategoria = registro.Texto("NombreCategoria"),
+        Descripcion = registro.TextoNulo("Descripcion"),
+        Activo = registro.Booleano("Activo")
     };
 }

@@ -7,7 +7,8 @@ escritura) y agrega:
 
 - los modelos y el acceso a datos separados en una **biblioteca de clases**
   (`NeptunoApp.Data`), referenciada por la aplicación WPF;
-- **modo desconectado** (`SqlDataAdapter` + `DataSet`) en las consultas;
+- **modo desconectado** (`SqlDataAdapter` + `DataSet`) en las consultas de solo
+  lectura, y **modo conectado** (`SqlDataReader`) en pedidos y lecturas por id;
 - la cadena de conexión movida al **`App.config` del proyecto de inicio**, leída
   con `ConfigurationManager`;
 - la auditoría de cargas bloqueantes (`.Result` / `.Wait()`) para que todo el
@@ -120,10 +121,10 @@ Tres proyectos, `Neptuno.slnx` los agrupa:
 ```
 NeptunoApp.Data/         BIBLIOTECA DE CLASES (net10.0)
   Models/                  Entidades del dominio
-  RepositoryBase.cs        Conexión, modo desconectado y ExecuteNonQuery
+  RepositoryBase.cs        Conexión, lectura conectada/desconectada y ExecuteNonQuery
   I*Repository.cs          Contratos que consumen los ViewModels
   *Repository.cs           Un procedimiento almacenado por operación
-  FilaExtensiones.cs       Lectura tipada de las filas del DataSet
+  LectorExtensiones.cs     Lectura tipada por columna (SqlDataReader o DataSet)
 
 NeptunoApp/              APLICACIÓN WPF, proyecto de inicio (net10.0-windows)
   App.config               Cadena de conexión (sección connectionStrings)
@@ -164,7 +165,7 @@ procedimientos con `THROW`.
 | Alta, edición y baja lógica con `ExecuteNonQuery` | `RepositoryBase.InsertarAsync` y `RepositoryBase.EjecutarAsync` |
 | Modelos y acceso a datos en una biblioteca de clases | Proyecto `NeptunoApp.Data` |
 | Referencias de proyectos correctas | `NeptunoApp.csproj` y `NeptunoApp.Tests.csproj` |
-| Modo desconectado donde corresponde | `RepositoryBase.LlenarAsync` (`SqlDataAdapter` + `DataSet`) |
+| Modo desconectado donde corresponde | `RepositoryBase.ListarDesconectadoAsync` / `LlenarAsync`; pedidos en `ListarConectadoAsync` |
 | Cadena de conexión en el proyecto de inicio | `NeptunoApp/App.config` + `NeptunoApp/Configuracion/DbConfig.cs` |
 | Sin cargas bloqueantes (`.Result` / `.Wait()`) | Auditoría al final de este documento |
 
@@ -277,49 +278,81 @@ Dos decisiones que vale la pena justificar:
 
 ## Explicación: escenario desconectado (criterio)
 
-El criterio es **por tipo de operación, no por pantalla**:
+El modo desconectado **no se aplica a todo**. El criterio es **por operación**,
+según cómo se usa el dato después de leerlo:
 
-> **Toda consulta** (listados, búsqueda de proveedores, obtener por id y el
-> reporte por fechas) se resuelve en **modo desconectado** con
-> `SqlDataAdapter` llenando un `DataSet`.
-> **Toda escritura** (alta, actualización y baja lógica) se mantiene en
-> **modo conectado** con `ExecuteNonQuery` sobre el procedimiento almacenado.
+> **Modo desconectado** (`SqlDataAdapter` llenando un `DataSet`) para las
+> consultas cuyo resultado el usuario solo **mira y recorre**, y que no cambian
+> mientras está en pantalla: listados de categorías, proveedores y productos,
+> búsqueda de proveedores, combos de clientes, empleados y transportistas, y el
+> reporte de detalle de pedidos por fechas.
+>
+> **Modo conectado** (`SqlDataReader`) para las lecturas que tienen que estar
+> **al día en el momento de usarlas**: los pedidos y sus líneas de detalle, y la
+> relectura por id que se hace justo antes de abrir el formulario de edición.
+>
+> **Toda escritura** (alta, actualización y baja lógica) es conectada con
+> `ExecuteNonQuery` sobre el procedimiento almacenado.
 
-Ambos modos están implementados en `NeptunoApp.Data/RepositoryBase.cs`:
+| Operación | Modo | Método de `RepositoryBase` |
+|-----------|------|----------------------------|
+| `Categoria/Proveedor/Producto.ListarAsync` | Desconectado | `ListarDesconectadoAsync` |
+| `Proveedor.BuscarAsync` | Desconectado | `ListarDesconectadoAsync` |
+| `Catalogo.ListarClientes/Empleados/TransportistasAsync` | Desconectado | `ListarDesconectadoAsync` |
+| `Pedido.ListarPorRangoFechasAsync` (reporte) | Desconectado | `ListarDesconectadoAsync` |
+| `Pedido.ListarAsync`, `Pedido.ListarDetalleAsync` | Conectado | `ListarConectadoAsync` |
+| `*.ObtenerPorIdAsync` (las cuatro entidades) | Conectado | `ObtenerConectadoAsync` |
+| Crear / actualizar / eliminar | Conectado | `InsertarAsync`, `EjecutarAsync` (`ExecuteNonQuery`) |
+
+Los dos modos de lectura están en `NeptunoApp.Data/RepositoryBase.cs`:
 
 ```csharp
-// Lectura: modo desconectado
+// Desconectado: Fill abre la conexión, trae las filas y la cierra.
 using var adaptador = new SqlDataAdapter(comando);
 var conjunto = new DataSet("Neptuno");
-adaptador.Fill(conjunto, "Resultado");   // abre y cierra la conexión
+adaptador.Fill(conjunto, "Resultado");
+
+// Conectado: se recorren las filas con la conexión abierta.
+await conexion.OpenAsync();
+await using var lector = await comando.ExecuteReaderAsync();
+while (await lector.ReadAsync()) resultado.Add(mapear(lector));
 ```
 
-**Por qué las consultas van desconectadas.** Los listados alimentan grillas y
-combos que el usuario mira, ordena y recorre durante minutos; no tiene sentido
-sostener una conexión abierta mientras tanto. `Fill` abre la conexión, trae las
-filas y la cierra de inmediato, y la aplicación sigue trabajando sobre la copia
-en memoria. También simplifica el código: no hay un `SqlDataReader` vivo al que
-haya que respetarle el ciclo de vida.
+**Por qué los listados, las búsquedas y el reporte van desconectados.** Son
+grillas y combos que el usuario mira, ordena y recorre durante minutos, y el
+reporte es una foto de un periodo cerrado. No tiene sentido sostener una
+conexión abierta mientras tanto: `Fill` la abre, trae las filas y la cierra de
+inmediato, y la aplicación sigue trabajando sobre la copia en memoria.
+
+**Por qué los pedidos no.** En el módulo de pedidos el dato cambia con cada
+acción del usuario: agregar, editar o quitar una línea modifica el detalle y el
+total de la cabecera, y la pantalla vuelve a leer ambos después de cada
+operación. Una copia en un `DataSet` quedaría desactualizada enseguida y no
+aporta nada, porque no se trabaja sobre ella: se la descarta en la siguiente
+lectura. Lo mismo vale para `ObtenerPorIdAsync`, que se llama justo antes de
+editar para confirmar que el registro sigue activo; es una lectura de una sola
+fila que se consume en el acto, el caso típico del `SqlDataReader`.
 
 **Por qué las escrituras siguen conectadas.** Las reglas de negocio están en los
 procedimientos almacenados (baja lógica, `@@ROWCOUNT`, validaciones con `THROW`
 50xxx, bloqueo de categorías con productos activos). Un `SqlDataAdapter` con
 comandos generados escribiría los cambios del `DataSet` directamente sobre las
-tablas y se saltaría esas reglas, además de resolver la concurrencia en el
-cliente en vez de en la base de datos. Cada escritura es de una sola fila y
-tiene que confirmarse o fallar en el momento, así que el modo conectado con
-`ExecuteNonQuery` es el que corresponde.
+tablas y se saltaría esas reglas. Cada escritura es de una sola fila y tiene que
+confirmarse o fallar en el momento, así que corresponde `ExecuteNonQuery`.
 
-**Consecuencia en el mapeo.** Como lo que se lee ya no es un `SqlDataReader`
-sino filas de un `DataSet`, los mapeos de todos los repositorios pasaron de
-`Mapear(SqlDataReader lector)` a `Mapear(DataRow fila)`, y las extensiones de
-lectura por nombre de columna son ahora `FilaExtensiones` (antes
-`LectorExtensiones`).
+**Un mismo mapeo para los dos modos.** Cada repositorio tiene un único
+`Mapear(IDataRecord registro)`. En modo conectado recibe el `SqlDataReader`; en
+modo desconectado, el `DataTableReader` que recorre la tabla del `DataSet` ya en
+memoria (`tabla.CreateDataReader()`, sin conexión). Por eso las extensiones de
+lectura por nombre de columna (`LectorExtensiones`) trabajan sobre
+`IDataRecord`, y pasar una operación de un modo al otro es cambiar una sola
+llamada en el repositorio.
 
 **Sobre `Fill` y el hilo de la interfaz.** `SqlDataAdapter.Fill` no tiene
 versión asincrónica. Para no bloquear la ventana, `LlenarAsync` lo ejecuta en
 un hilo del pool con `Task.Run` y devuelve un `Task<DataTable>`: quien llama
-sigue usando `await` y el hilo de interfaz queda libre.
+sigue usando `await` y el hilo de interfaz queda libre. El modo conectado no
+lo necesita porque usa `OpenAsync`, `ExecuteReaderAsync` y `ReadAsync`.
 
 ## Auditoría: la cadena de conexión y App.config
 
@@ -405,9 +438,6 @@ no devuelve resultados en los tres proyectos.
 - El descuento se guarda como fracción (0.05 = 5 %) y se captura en porcentaje.
 - Códigos de error por entidad: 501xx categorías, 502xx proveedores,
   503xx productos, 504xx pedidos, 505xx detalle, 506xx reporte.
-- Los mapeos leen `DataRow` y no `SqlDataReader`. Las conversiones nulas usan
-  `fila.IsNull("Columna")` en vez de `IsDBNull(ordinal)`; el resto del mapeo es
-  idéntico porque el `DataSet` conserva los tipos CLR de las columnas.
 - La biblioteca referencia `CommunityToolkit.Mvvm` porque los modelos notifican
   cambios con `[ObservableProperty]`. El paquete no depende de WPF, así que no
   ata la capa de datos a la interfaz.

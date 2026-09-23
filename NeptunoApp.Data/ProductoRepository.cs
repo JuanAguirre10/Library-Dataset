@@ -11,10 +11,10 @@ public class ProductoRepository : RepositoryBase, IProductoRepository
     }
 
     public Task<List<Producto>> ListarAsync()
-        => ListarAsync("dbo.usp_Producto_Listar", Mapear);
+        => ListarDesconectadoAsync("dbo.usp_Producto_Listar", Mapear);
 
     public Task<Producto?> ObtenerPorIdAsync(int productoId)
-        => ObtenerAsync("dbo.usp_Producto_ObtenerPorId", Mapear, p =>
+        => ObtenerConectadoAsync("dbo.usp_Producto_ObtenerPorId", Mapear, p =>
             p.Add("@ProductoID", SqlDbType.Int).Value = productoId);
 
     public Task<int> CrearAsync(Producto producto)
@@ -44,20 +44,20 @@ public class ProductoRepository : RepositoryBase, IProductoRepository
         p.Add("@Descontinuado", SqlDbType.Bit).Value = producto.Descontinuado;
     }
 
-    private static Producto Mapear(DataRow fila) => new()
+    private static Producto Mapear(IDataRecord registro) => new()
     {
-        ProductoID = fila.Entero("ProductoID"),
-        NombreProducto = fila.Texto("NombreProducto"),
-        ProveedorID = fila.EnteroNulo("ProveedorID"),
-        CategoriaID = fila.EnteroNulo("CategoriaID"),
-        CantidadPorUnidad = fila.TextoNulo("CantidadPorUnidad"),
-        PrecioUnidad = fila.Decimal("PrecioUnidad"),
-        UnidadesEnExistencia = fila.Corto("UnidadesEnExistencia"),
-        UnidadesEnPedido = fila.Corto("UnidadesEnPedido"),
-        NivelDeReorden = fila.Corto("NivelDeReorden"),
-        Descontinuado = fila.Booleano("Descontinuado"),
-        Activo = fila.Booleano("Activo"),
-        NombreCategoria = fila.TextoNulo("NombreCategoria"),
-        NombreProveedor = fila.TextoNulo("NombreProveedor")
+        ProductoID = registro.Entero("ProductoID"),
+        NombreProducto = registro.Texto("NombreProducto"),
+        ProveedorID = registro.EnteroNulo("ProveedorID"),
+        CategoriaID = registro.EnteroNulo("CategoriaID"),
+        CantidadPorUnidad = registro.TextoNulo("CantidadPorUnidad"),
+        PrecioUnidad = registro.Decimal("PrecioUnidad"),
+        UnidadesEnExistencia = registro.Corto("UnidadesEnExistencia"),
+        UnidadesEnPedido = registro.Corto("UnidadesEnPedido"),
+        NivelDeReorden = registro.Corto("NivelDeReorden"),
+        Descontinuado = registro.Booleano("Descontinuado"),
+        Activo = registro.Booleano("Activo"),
+        NombreCategoria = registro.TextoNulo("NombreCategoria"),
+        NombreProveedor = registro.TextoNulo("NombreProveedor")
     };
 }

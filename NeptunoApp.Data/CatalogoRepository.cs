@@ -10,33 +10,33 @@ public class CatalogoRepository : RepositoryBase, ICatalogoRepository
     }
 
     public Task<List<Cliente>> ListarClientesAsync()
-        => ListarAsync("dbo.usp_Cliente_Listar", fila => new Cliente
+        => ListarDesconectadoAsync("dbo.usp_Cliente_Listar", registro => new Cliente
         {
-            ClienteID = fila.Entero("ClienteID"),
-            Empresa = fila.Texto("Empresa"),
-            NombreContacto = fila.TextoNulo("NombreContacto"),
-            Ciudad = fila.TextoNulo("Ciudad"),
-            Pais = fila.TextoNulo("Pais"),
-            Telefono = fila.TextoNulo("Telefono")
+            ClienteID = registro.Entero("ClienteID"),
+            Empresa = registro.Texto("Empresa"),
+            NombreContacto = registro.TextoNulo("NombreContacto"),
+            Ciudad = registro.TextoNulo("Ciudad"),
+            Pais = registro.TextoNulo("Pais"),
+            Telefono = registro.TextoNulo("Telefono")
         });
 
     public Task<List<Empleado>> ListarEmpleadosAsync()
-        => ListarAsync("dbo.usp_Empleado_Listar", fila => new Empleado
+        => ListarDesconectadoAsync("dbo.usp_Empleado_Listar", registro => new Empleado
         {
-            EmpleadoID = fila.Entero("EmpleadoID"),
-            Nombre = fila.Texto("Nombre"),
-            Apellidos = fila.Texto("Apellidos"),
-            Cargo = fila.TextoNulo("Cargo"),
-            Ciudad = fila.TextoNulo("Ciudad"),
-            Pais = fila.TextoNulo("Pais"),
-            NombreCompleto = fila.Texto("NombreCompleto")
+            EmpleadoID = registro.Entero("EmpleadoID"),
+            Nombre = registro.Texto("Nombre"),
+            Apellidos = registro.Texto("Apellidos"),
+            Cargo = registro.TextoNulo("Cargo"),
+            Ciudad = registro.TextoNulo("Ciudad"),
+            Pais = registro.TextoNulo("Pais"),
+            NombreCompleto = registro.Texto("NombreCompleto")
         });
 
     public Task<List<Transportista>> ListarTransportistasAsync()
-        => ListarAsync("dbo.usp_Transportista_Listar", fila => new Transportista
+        => ListarDesconectadoAsync("dbo.usp_Transportista_Listar", registro => new Transportista
         {
-            TransportistaID = fila.Entero("TransportistaID"),
-            CompaniaNombre = fila.Texto("CompaniaNombre"),
-            Telefono = fila.TextoNulo("Telefono")
+            TransportistaID = registro.Entero("TransportistaID"),
+            CompaniaNombre = registro.Texto("CompaniaNombre"),
+            Telefono = registro.TextoNulo("Telefono")
         });
 }

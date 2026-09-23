@@ -4,6 +4,12 @@ using NeptunoApp.Models;
 
 namespace NeptunoApp.Data;
 
+/// <summary>
+/// Pedidos y su detalle se leen en modo conectado: la cabecera muestra el total
+/// del pedido y el detalle se relee despues de cada linea agregada, editada o
+/// quitada, asi que una copia en memoria quedaria desactualizada enseguida. Solo
+/// el reporte por fechas, que es una consulta de solo lectura, va desconectado.
+/// </summary>
 public class PedidoRepository : RepositoryBase, IPedidoRepository
 {
     public PedidoRepository(string cadenaConexion) : base(cadenaConexion)
@@ -11,10 +17,10 @@ public class PedidoRepository : RepositoryBase, IPedidoRepository
     }
 
     public Task<List<Pedido>> ListarAsync()
-        => ListarAsync("dbo.usp_Pedido_Listar", Mapear);
+        => ListarConectadoAsync("dbo.usp_Pedido_Listar", Mapear);
 
     public Task<Pedido?> ObtenerPorIdAsync(int pedidoId)
-        => ObtenerAsync("dbo.usp_Pedido_ObtenerPorId", Mapear, p =>
+        => ObtenerConectadoAsync("dbo.usp_Pedido_ObtenerPorId", Mapear, p =>
             p.Add("@PedidoID", SqlDbType.Int).Value = pedidoId);
 
     public Task<int> CrearAsync(Pedido pedido)
@@ -32,7 +38,7 @@ public class PedidoRepository : RepositoryBase, IPedidoRepository
             p.Add("@PedidoID", SqlDbType.Int).Value = pedidoId);
 
     public Task<List<DetallePedido>> ListarDetalleAsync(int pedidoId)
-        => ListarAsync("dbo.usp_DetallePedido_ListarPorPedido", MapearDetalle, p =>
+        => ListarConectadoAsync("dbo.usp_DetallePedido_ListarPorPedido", MapearDetalle, p =>
             p.Add("@PedidoID", SqlDbType.Int).Value = pedidoId);
 
     public Task AgregarDetalleAsync(DetallePedido detalle)
@@ -49,7 +55,7 @@ public class PedidoRepository : RepositoryBase, IPedidoRepository
         });
 
     public Task<List<LineaReporte>> ListarPorRangoFechasAsync(DateTime fechaInicio, DateTime fechaFin)
-        => ListarAsync("dbo.usp_DetallePedido_ListarPorRangoFechas", MapearLinea, p =>
+        => ListarDesconectadoAsync("dbo.usp_DetallePedido_ListarPorRangoFechas", MapearLinea, p =>
         {
             p.Add("@FechaInicio", SqlDbType.Date).Value = fechaInicio.Date;
             p.Add("@FechaFin", SqlDbType.Date).Value = fechaFin.Date;
@@ -77,46 +83,46 @@ public class PedidoRepository : RepositoryBase, IPedidoRepository
         p.Add("@Descuento", SqlDbType.Decimal).Value = detalle.Descuento;
     }
 
-    private static Pedido Mapear(DataRow fila) => new()
+    private static Pedido Mapear(IDataRecord registro) => new()
     {
-        PedidoID = fila.Entero("PedidoID"),
-        ClienteID = fila.EnteroNulo("ClienteID"),
-        EmpleadoID = fila.EnteroNulo("EmpleadoID"),
-        FechaPedido = fila.Fecha("FechaPedido"),
-        FechaRequerida = fila.FechaNula("FechaRequerida"),
-        FechaEnvio = fila.FechaNula("FechaEnvio"),
-        TransportistaID = fila.EnteroNulo("TransportistaID"),
-        Destinatario = fila.TextoNulo("Destinatario"),
-        CiudadDestino = fila.TextoNulo("CiudadDestino"),
-        PaisDestino = fila.TextoNulo("PaisDestino"),
-        Activo = fila.Booleano("Activo"),
-        NombreCliente = fila.TextoNulo("NombreCliente"),
-        NombreEmpleado = fila.TextoNulo("NombreEmpleado"),
-        NombreTransportista = fila.TextoNulo("NombreTransportista"),
-        Total = fila.Decimal("Total")
+        PedidoID = registro.Entero("PedidoID"),
+        ClienteID = registro.EnteroNulo("ClienteID"),
+        EmpleadoID = registro.EnteroNulo("EmpleadoID"),
+        FechaPedido = registro.Fecha("FechaPedido"),
+        FechaRequerida = registro.FechaNula("FechaRequerida"),
+        FechaEnvio = registro.FechaNula("FechaEnvio"),
+        TransportistaID = registro.EnteroNulo("TransportistaID"),
+        Destinatario = registro.TextoNulo("Destinatario"),
+        CiudadDestino = registro.TextoNulo("CiudadDestino"),
+        PaisDestino = registro.TextoNulo("PaisDestino"),
+        Activo = registro.Booleano("Activo"),
+        NombreCliente = registro.TextoNulo("NombreCliente"),
+        NombreEmpleado = registro.TextoNulo("NombreEmpleado"),
+        NombreTransportista = registro.TextoNulo("NombreTransportista"),
+        Total = registro.Decimal("Total")
     };
 
-    private static DetallePedido MapearDetalle(DataRow fila) => new()
+    private static DetallePedido MapearDetalle(IDataRecord registro) => new()
     {
-        PedidoID = fila.Entero("PedidoID"),
-        ProductoID = fila.Entero("ProductoID"),
-        NombreProducto = fila.TextoNulo("NombreProducto"),
-        PrecioUnidad = fila.Decimal("PrecioUnidad"),
-        Cantidad = fila.Corto("Cantidad"),
-        Descuento = fila.Decimal("Descuento"),
-        Subtotal = fila.Decimal("Subtotal")
+        PedidoID = registro.Entero("PedidoID"),
+        ProductoID = registro.Entero("ProductoID"),
+        NombreProducto = registro.TextoNulo("NombreProducto"),
+        PrecioUnidad = registro.Decimal("PrecioUnidad"),
+        Cantidad = registro.Corto("Cantidad"),
+        Descuento = registro.Decimal("Descuento"),
+        Subtotal = registro.Decimal("Subtotal")
     };
 
-    private static LineaReporte MapearLinea(DataRow fila) => new()
+    private static LineaReporte MapearLinea(IDataRecord registro) => new()
     {
-        PedidoID = fila.Entero("PedidoID"),
-        FechaPedido = fila.Fecha("FechaPedido"),
-        NombreCliente = fila.TextoNulo("NombreCliente"),
-        ProductoID = fila.Entero("ProductoID"),
-        NombreProducto = fila.Texto("NombreProducto"),
-        PrecioUnidad = fila.Decimal("PrecioUnidad"),
-        Cantidad = fila.Corto("Cantidad"),
-        Descuento = fila.Decimal("Descuento"),
-        Subtotal = fila.Decimal("Subtotal")
+        PedidoID = registro.Entero("PedidoID"),
+        FechaPedido = registro.Fecha("FechaPedido"),
+        NombreCliente = registro.TextoNulo("NombreCliente"),
+        ProductoID = registro.Entero("ProductoID"),
+        NombreProducto = registro.Texto("NombreProducto"),
+        PrecioUnidad = registro.Decimal("PrecioUnidad"),
+        Cantidad = registro.Corto("Cantidad"),
+        Descuento = registro.Decimal("Descuento"),
+        Subtotal = registro.Decimal("Subtotal")
     };
 }
