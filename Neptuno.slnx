@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="NeptunoApp.Data/NeptunoApp.Data.csproj" />
+  <Project Path="NeptunoApp/NeptunoApp.csproj" />
+  <Project Path="NeptunoApp.Tests/NeptunoApp.Tests.csproj" />
+</Solution>

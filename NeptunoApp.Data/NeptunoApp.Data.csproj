@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Biblioteca de clases con los modelos y el acceso a datos.
+      Target net10.0 (sin -windows) a proposito: esta capa no conoce WPF ni
+      ninguna tecnologia de interfaz, por eso puede reutilizarse desde otro
+      tipo de cliente. Tampoco conoce App.config: la cadena de conexion entra
+      por el constructor de cada repositorio.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+    <!--
+      Los modelos notifican cambios con [ObservableProperty]. CommunityToolkit.Mvvm
+      no depende de WPF, asi que puede vivir en esta capa sin atarla a la interfaz.
+    -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+</Project>

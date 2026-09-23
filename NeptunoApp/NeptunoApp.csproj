@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <!--
+      ConfigurationManager (System.Configuration) se usa aqui, en el proyecto de
+      inicio, para leer App.config. En net10.0-windows ya lo aporta el framework
+      de escritorio, por eso no hace falta un PackageReference.
+    -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Modelos y repositorios viven en la biblioteca de clases. -->
+    <ProjectReference Include="..\NeptunoApp.Data\NeptunoApp.Data.csproj" />
+  </ItemGroup>
+
+</Project>

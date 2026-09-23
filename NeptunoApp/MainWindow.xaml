@@ -1,0 +1,71 @@
+<Window x:Class="NeptunoApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:NeptunoApp.Models"
+        Style="{StaticResource Ventana}"
+        Title="Neptuno - Gestión comercial" Height="740" Width="1200"
+        WindowStartupLocation="CenterScreen" MinHeight="600" MinWidth="1000">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="228"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Barra lateral -->
+        <Border Grid.Column="0" Background="{StaticResource BarraBrush}">
+            <DockPanel>
+                <!-- Marca -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="20,24,20,28">
+                    <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource AcentoBrush}">
+                        <TextBlock Text="N" Foreground="White" FontSize="18" FontWeight="Bold"
+                                   HorizontalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Neptuno" Foreground="White" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Text="Gestión comercial" Foreground="{StaticResource BarraTextoTenueBrush}"
+                                   FontSize="11.5"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Pie -->
+                <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource BarraBordeBrush}"
+                        BorderThickness="0,1,0,0" Padding="20,14,20,18">
+                    <StackPanel>
+                        <TextBlock Text="Laboratorio 06" FontSize="11.5"
+                                   Foreground="{StaticResource BarraTextoBrush}"/>
+                        <TextBlock Text="Class Library &amp; DataSet" FontSize="11.5" Margin="0,2,0,0"
+                                   Foreground="{StaticResource BarraTextoBrush}"/>
+                        <TextBlock Text="Base de datos: NeptunoDB_Lab06" FontSize="11.5" Margin="0,4,0,0"
+                                   Foreground="{StaticResource BarraTextoTenueBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Navegacion -->
+                <StackPanel VerticalAlignment="Top">
+                    <TextBlock Text="MÓDULOS" FontSize="10.5" FontWeight="SemiBold" Margin="24,0,0,8"
+                               Foreground="{StaticResource BarraTextoTenueBrush}"/>
+
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Productos" Tag="&#xE7B8;"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Productos}}"/>
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Categorías" Tag="&#xE74C;"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Categorias}}"/>
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Proveedores" Tag="&#xE821;"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Proveedores}}"/>
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Pedidos" Tag="&#xE7BF;"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Pedidos}}"/>
+                    <RadioButton Style="{StaticResource BotonNavegacion}" Content="Reportes" Tag="&#xE9D2;"
+                                 IsChecked="{Binding SeccionActual, Converter={StaticResource EnumEquals},
+                                             ConverterParameter={x:Static models:Seccion.Reportes}}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Modulo activo -->
+        <ContentControl Grid.Column="1" Content="{Binding ContenidoActual}" Focusable="False"/>
+    </Grid>
+</Window>

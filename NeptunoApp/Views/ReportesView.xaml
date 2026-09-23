@@ -1,0 +1,141 @@
+﻿<UserControl x:Class="NeptunoApp.Views.ReportesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Encabezado -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Reporte de detalles de pedidos" Style="{StaticResource TituloSeccion}"/>
+            <TextBlock Text="Líneas de pedido unidas a su cabecera, filtradas por intervalo de fechas."
+                       Style="{StaticResource TextoAyuda}" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Filtros de fecha -->
+        <Border Grid.Row="1" Style="{StaticResource Tarjeta}" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,14,0" Width="150">
+                    <TextBlock Text="Desde" Style="{StaticResource EtiquetaCampo}"/>
+                    <DatePicker SelectedDate="{Binding FechaInicio}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,14,0" Width="150">
+                    <TextBlock Text="Hasta" Style="{StaticResource EtiquetaCampo}"/>
+                    <DatePicker SelectedDate="{Binding FechaFin}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <Button Content="Mes actual" Style="{StaticResource BotonSecundario}"
+                            Command="{Binding EstablecerMesActualCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Año actual" Style="{StaticResource BotonSecundario}"
+                            Command="{Binding EstablecerAnioActualCommand}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
+                    <Button Content="Generar reporte" Style="{StaticResource BotonPrimario}"
+                            Command="{Binding GenerarCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Mensaje de error -->
+        <Border Grid.Row="2" Style="{StaticResource PanelError}"
+                Visibility="{Binding ErrorMessage, Converter={StaticResource TextoToVisibility}}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource PeligroBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- Resultado -->
+        <Border Grid.Row="3" Style="{StaticResource Tarjeta}" Padding="0">
+            <Grid>
+                <DataGrid ItemsSource="{Binding Lineas}" BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Pedido" Binding="{Binding PedidoID}" Width="70"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Fecha" Width="100"
+                                            Binding="{Binding FechaPedido, StringFormat='dd/MM/yyyy'}"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Cliente" Binding="{Binding NombreCliente}" Width="*"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Producto" Binding="{Binding NombreProducto}" Width="*"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Precio" Width="95"
+                                            Binding="{Binding PrecioUnidad, StringFormat='N2'}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}" Width="85">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Descuento" Width="95"
+                                            Binding="{Binding Descuento, StringFormat='P0'}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Subtotal" Width="110"
+                                            Binding="{Binding Subtotal, StringFormat='N2'}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding HayRegistros, Converter={StaticResource BoolToVisibility},
+                                         ConverterParameter=Invert}">
+                    <TextBlock Text="Elija un intervalo de fechas y presione Generar reporte."
+                               Style="{StaticResource TextoAyuda}" HorizontalAlignment="Center"
+                               Visibility="{Binding ConsultaRealizada, Converter={StaticResource BoolToVisibility},
+                                            ConverterParameter=Invert}"/>
+                    <TextBlock Text="No hay pedidos en el intervalo seleccionado."
+                               Style="{StaticResource TextoAyuda}" HorizontalAlignment="Center"
+                               Visibility="{Binding ConsultaRealizada, Converter={StaticResource BoolToVisibility}}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Totales -->
+        <Border Grid.Row="4" Style="{StaticResource Tarjeta}" Margin="0,14,0,0" Padding="16,12"
+                Visibility="{Binding HayRegistros, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="Líneas:" Style="{StaticResource TextoAyuda}"/>
+                <TextBlock Text="{Binding Lineas.Count}" FontWeight="SemiBold" Margin="6,0,24,0"/>
+
+                <TextBlock Text="Unidades:" Style="{StaticResource TextoAyuda}"/>
+                <TextBlock Text="{Binding TotalUnidades}" FontWeight="SemiBold" Margin="6,0,24,0"/>
+
+                <TextBlock Text="Total:" Style="{StaticResource TextoAyuda}"/>
+                <TextBlock Text="{Binding TotalGeneral, StringFormat='N2'}" FontWeight="SemiBold"
+                           FontSize="15" Foreground="{StaticResource AcentoBrush}" Margin="6,0,0,0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

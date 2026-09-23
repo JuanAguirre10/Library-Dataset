@@ -1,0 +1,111 @@
+﻿<UserControl x:Class="NeptunoApp.Views.ProveedoresView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Encabezado -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Proveedores" Style="{StaticResource TituloSeccion}"/>
+                <TextBlock Text="Mantenimiento y búsqueda de proveedores."
+                           Style="{StaticResource TextoAyuda}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Editar" Style="{StaticResource BotonSecundario}"
+                        Command="{Binding EditarCommand}"
+                        CommandParameter="{Binding Seleccionado}" Margin="0,0,8,0"/>
+                <Button Content="Eliminar" Style="{StaticResource BotonPeligro}"
+                        Command="{Binding EliminarCommand}"
+                        CommandParameter="{Binding Seleccionado}" Margin="0,0,8,0"/>
+                <Button Content="Nuevo proveedor" Style="{StaticResource BotonPrimario}"
+                        Command="{Binding NuevoCommand}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Filtros de busqueda -->
+        <Border Grid.Row="1" Style="{StaticResource Tarjeta}" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                    <TextBlock Text="Nombre de contacto" Style="{StaticResource EtiquetaCampo}"/>
+                    <TextBox Style="{StaticResource CampoTexto}" MaxLength="40"
+                             Text="{Binding FiltroNombreContacto, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                    <TextBlock Text="Ciudad" Style="{StaticResource EtiquetaCampo}"/>
+                    <TextBox Style="{StaticResource CampoTexto}" MaxLength="30"
+                             Text="{Binding FiltroCiudad, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <Button Content="Limpiar" Style="{StaticResource BotonSecundario}"
+                            Command="{Binding LimpiarFiltrosCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Buscar" Style="{StaticResource BotonPrimario}"
+                            Command="{Binding BuscarCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Mensaje de error -->
+        <Border Grid.Row="2" Style="{StaticResource PanelError}"
+                Visibility="{Binding ErrorMessage, Converter={StaticResource TextoToVisibility}}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource PeligroBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- Listado -->
+        <Border Grid.Row="3" Style="{StaticResource Tarjeta}" Padding="0">
+            <Grid>
+                <DataGrid ItemsSource="{Binding Proveedores}"
+                          SelectedItem="{Binding Seleccionado}"
+                          BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ID" Binding="{Binding ProveedorID}" Width="55"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Compañía" Binding="{Binding CompaniaNombre}" Width="1.5*"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Contacto" Binding="{Binding NombreContacto}" Width="1.1*"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Cargo" Binding="{Binding CargoContacto}" Width="1.5*"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Ciudad" Binding="{Binding Ciudad}" Width="110"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="País" Binding="{Binding Pais}" Width="80"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="115"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding HayRegistros, Converter={StaticResource BoolToVisibility},
+                                         ConverterParameter=Invert}">
+                    <TextBlock Text="No se encontraron proveedores." Style="{StaticResource TextoAyuda}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Pruebe con otros filtros de búsqueda." Style="{StaticResource TextoAyuda}"
+                               HorizontalAlignment="Center" Margin="0,4,0,0"
+                               Visibility="{Binding FiltrosAplicados, Converter={StaticResource BoolToVisibility}}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

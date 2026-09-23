@@ -1,0 +1,70 @@
+﻿<UserControl x:Class="NeptunoApp.Views.CategoriasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Encabezado -->
+        <Grid Grid.Row="0" Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Categorías" Style="{StaticResource TituloSeccion}"/>
+                <TextBlock Text="Mantenimiento de las categorías de productos."
+                           Style="{StaticResource TextoAyuda}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Actualizar" Style="{StaticResource BotonSecundario}"
+                        Command="{Binding CargarCommand}" Margin="0,0,8,0"/>
+                <Button Content="Editar" Style="{StaticResource BotonSecundario}"
+                        Command="{Binding EditarCommand}"
+                        CommandParameter="{Binding Seleccionada}" Margin="0,0,8,0"/>
+                <Button Content="Eliminar" Style="{StaticResource BotonPeligro}"
+                        Command="{Binding EliminarCommand}"
+                        CommandParameter="{Binding Seleccionada}" Margin="0,0,8,0"/>
+                <Button Content="Nueva categoría" Style="{StaticResource BotonPrimario}"
+                        Command="{Binding NuevaCommand}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Mensaje de error -->
+        <Border Grid.Row="1" Style="{StaticResource PanelError}"
+                Visibility="{Binding ErrorMessage, Converter={StaticResource TextoToVisibility}}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource PeligroBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- Listado -->
+        <Border Grid.Row="2" Style="{StaticResource Tarjeta}" Padding="0">
+            <Grid>
+                <DataGrid ItemsSource="{Binding Categorias}"
+                          SelectedItem="{Binding Seleccionada}"
+                          BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ID" Binding="{Binding CategoriaID}" Width="60"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding NombreCategoria}" Width="240"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                        <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*"
+                                            ElementStyle="{StaticResource CeldaTexto}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Text="No hay categorías registradas."
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Style="{StaticResource TextoAyuda}"
+                           Visibility="{Binding HayRegistros, Converter={StaticResource BoolToVisibility},
+                                        ConverterParameter=Invert}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
